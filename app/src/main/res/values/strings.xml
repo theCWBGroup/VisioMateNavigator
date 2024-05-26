@@ -36,6 +36,5 @@
     <string name="node_deleted">Node deleted</string>
     <string name="link_created">Link created</string>
     <string name="start_typing" >Start typing…</string>
-
-
+    <string name="voice_navigation" >Voice Navigation</string>
 </resources>
