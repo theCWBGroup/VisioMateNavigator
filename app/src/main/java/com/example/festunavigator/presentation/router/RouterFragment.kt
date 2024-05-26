@@ -1,7 +1,12 @@
 package com.example.festunavigator.presentation.router
 
+import android.content.Context
+import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
+import android.speech.tts.TextToSpeech
+import android.speech.tts.TextToSpeechService
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,12 +40,20 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
+
 @AndroidEntryPoint
-class RouterFragment: Fragment() {
+class RouterFragment: Fragment(), TextToSpeech.OnInitListener {
 
     private val mainModel: MainShareModel by activityViewModels()
+
+    override fun onInit(status: Int) {
+        if (status!= TextToSpeech.ERROR) {
+            tts.language = Locale.US
+        }
+    }
 
     @Inject
     lateinit var destinationDesc: GetDestinationDesc
@@ -49,6 +62,9 @@ class RouterFragment: Fragment() {
 
     private var _binding: FragmentRouterBinding? = null
     private val binding get() = _binding!!
+
+    // Initialize TextToSpeech
+    private lateinit var tts: TextToSpeech
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -59,12 +75,51 @@ class RouterFragment: Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-
+        var voice_navigation = false
         if (App.mode == App.ADMIN_MODE) {
             binding.adminPanel.isVisible = true
         }
         else {
             binding.adminPanel.isGone = true
+        }
+
+        tts = TextToSpeech(requireContext(), this)
+
+        binding.VoiceButton.setOnClickListener {
+            voice_navigation = !voice_navigation
+            if (voice_navigation) {
+                binding.VoiceButton.text = "Voice navigation: ON"
+                // Enable TopButton, RightButton, LeftButton
+                binding.topButton.isEnabled = true
+                binding.rightButton.isEnabled = true
+                binding.leftButton.isEnabled = true
+            }
+            else {
+                binding.VoiceButton.text = "Voice navigation: OFF"
+                // Disable TopButton, RightButton, LeftButton
+                binding.topButton.isEnabled = false
+                binding.rightButton.isEnabled = false
+                binding.leftButton.isEnabled = false
+            }
+
+        }
+
+        binding.topButton.setOnClickListener {
+            if (voice_navigation) {
+                speakOut("Go straight")
+            }
+        }
+
+        binding.rightButton.setOnClickListener {
+            if (voice_navigation) {
+                speakOut("Turn right")
+            }
+        }
+
+        binding.leftButton.setOnClickListener {
+            if (voice_navigation) {
+                speakOut("Turn left")
+            }
         }
 
         binding.deleteButton.setOnClickListener {
@@ -145,6 +200,15 @@ class RouterFragment: Fragment() {
 
                 }
             }
+        }
+    }
+
+    // Method to handle speaking out the text
+    private fun speakOut(text: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "")
+        } else {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null)
         }
     }
 
